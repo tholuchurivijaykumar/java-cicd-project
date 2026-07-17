@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        MINIKUBE_HOME = '/home/vijay-chowdary/.minikube'
+        KUBECONFIG = '/home/vijay-chowdary/.kube/config'
+    }
+
     triggers {
         cron('H/2 * * * *')
     }
