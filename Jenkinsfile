@@ -41,13 +41,13 @@ pipeline {
                 script {
                     def imageTag = "${env.BUILD_NUMBER}"
                     def dockerImage = "vijay14082003/java-cicd-app"
-                    sh "sudo docker build -t ${dockerImage}:${imageTag} ."
-                    sh "sudo docker tag ${dockerImage}:${imageTag} ${dockerImage}:latest"
+                    sh "docker build -t ${dockerImage}:${imageTag} ."
+                    sh "docker tag ${dockerImage}:${imageTag} ${dockerImage}:latest"
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh "echo \$DOCKER_PASS | sudo docker login -u \$DOCKER_USER --password-stdin"
+                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                     }
-                    sh "sudo docker push ${dockerImage}:${imageTag}"
-                    sh "sudo docker push ${dockerImage}:latest"
+                    sh "docker push ${dockerImage}:${imageTag}"
+                    sh "docker push ${dockerImage}:latest"
                 }
             }
         }
@@ -83,7 +83,7 @@ pipeline {
             echo 'Pipeline failed. Check logs for details.'
         }
         always {
-            sh 'sudo docker logout || true'
+            sh 'docker logout || true'
         }
     }
 }
