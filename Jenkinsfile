@@ -36,13 +36,22 @@ pipeline {
             }
         }
 
-        stage('Docker Build and Push') {
+        stage('Docker Build') {
             steps {
                 script {
                     def imageTag = "${env.BUILD_NUMBER}"
                     def dockerImage = "vijay14082003/java-cicd-app"
                     sh "docker build -t ${dockerImage}:${imageTag} ."
                     sh "docker tag ${dockerImage}:${imageTag} ${dockerImage}:latest"
+                }
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                script {
+                    def imageTag = "${env.BUILD_NUMBER}"
+                    def dockerImage = "vijay14082003/java-cicd-app"
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                     }
@@ -57,6 +66,8 @@ pipeline {
                 script {
                     def imageTag = "${env.BUILD_NUMBER}"
                     def dockerImage = "vijay14082003/java-cicd-app"
+                    sh "minikube image load ${dockerImage}:${imageTag}"
+                    sh "minikube image load ${dockerImage}:latest"
                     sh "kubectl set image deployment/java-cicd-app java-cicd-app=${dockerImage}:${imageTag} --record"
                     sh "kubectl rollout status deployment/java-cicd-app --timeout=120s"
                     sh "kubectl get pods -l app=java-cicd-app"
