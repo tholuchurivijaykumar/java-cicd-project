@@ -49,14 +49,16 @@ pipeline {
 
         stage('Push to DockerHub') {
             steps {
-                script {
-                    def imageTag = "${env.BUILD_NUMBER}"
-                    def dockerImage = "vijay14082003/java-cicd-app"
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    script {
+                        def imageTag = "${env.BUILD_NUMBER}"
+                        def dockerImage = "vijay14082003/java-cicd-app"
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                        }
+                        sh "docker push ${dockerImage}:${imageTag}"
+                        sh "docker push ${dockerImage}:latest"
                     }
-                    sh "docker push ${dockerImage}:${imageTag}"
-                    sh "docker push ${dockerImage}:latest"
                 }
             }
         }
