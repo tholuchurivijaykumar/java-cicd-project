@@ -1,12 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_HUB_CREDS = credentials('dockerhub-creds')
-        DOCKER_HUB_IMAGE = 'vijay14082003/java-cicd-app'
-        DOCKER_TAG = "${env.BUILD_NUMBER}"
-    }
-
     triggers {
         cron('H/2 * * * *')
     }
@@ -15,8 +9,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/tholuchurivijaykumar/java-cicd-project.git',
-                    credentialsId: 'github-creds'
+                    url: 'https://github.com/tholuchurivijaykumar/java-cicd-project.git'
             }
         }
 
@@ -32,7 +25,7 @@ pipeline {
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
                 }
             }
         }
@@ -46,11 +39,15 @@ pipeline {
         stage('Docker Build and Push') {
             steps {
                 script {
-                    sh "docker build -t ${DOCKER_HUB_IMAGE}:${DOCKER_TAG} ."
-                    sh "docker tag ${DOCKER_HUB_IMAGE}:${DOCKER_TAG} ${DOCKER_HUB_IMAGE}:latest"
-                    sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
-                    sh "docker push ${DOCKER_HUB_IMAGE}:${DOCKER_TAG}"
-                    sh "docker push ${DOCKER_HUB_IMAGE}:latest"
+                    def imageTag = "${env.BUILD_NUMBER}"
+                    def dockerImage = "vijay14082003/java-cicd-app"
+                    sh "docker build -t ${dockerImage}:${imageTag} ."
+                    sh "docker tag ${dockerImage}:${imageTag} ${dockerImage}:latest"
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                    }
+                    sh "docker push ${dockerImage}:${imageTag}"
+                    sh "docker push ${dockerImage}:latest"
                 }
             }
         }
@@ -58,7 +55,9 @@ pipeline {
         stage('Deploy to Minikube') {
             steps {
                 script {
-                    sh "kubectl set image deployment/java-cicd-app java-cicd-app=${DOCKER_HUB_IMAGE}:${DOCKER_TAG} --record"
+                    def imageTag = "${env.BUILD_NUMBER}"
+                    def dockerImage = "vijay14082003/java-cicd-app"
+                    sh "kubectl set image deployment/java-cicd-app java-cicd-app=${dockerImage}:${imageTag} --record"
                     sh "kubectl rollout status deployment/java-cicd-app --timeout=120s"
                     sh "kubectl get pods -l app=java-cicd-app"
                     sh "kubectl get svc java-cicd-app-service"
